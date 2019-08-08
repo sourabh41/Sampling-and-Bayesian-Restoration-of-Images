@@ -1,0 +1,83 @@
+clc; clear;
+
+load('assignmentImageDenoisingPhantom.mat');
+L = 10;
+X = abs(imageNoisy);
+X = X/max(max(X));
+X = L*X;
+X = ceil(X)/L;
+% X = ones(100)/2;
+% for i = 20:30
+%     for j = 5:95
+%         X(i,j) = 1;
+%     end
+% end
+% 
+% for j = 30:70
+%     for i = 5:95
+%         X(i,j) = 1;
+%     end
+% end
+% imshow(X);
+% figure(2);
+% p = repmat(0.2, 100, 100);
+% P = rand(100);
+% Y = (P<p).*(1.5-X) + (P>p).*X;
+% imshow(Y)
+I = zeros(L,1);
+for l = 1:L
+    I(l) = l/L;
+end
+initialState = X;
+State = initialState;
+S = size(State);
+newState = zeros(S);
+mu = 0;
+sigmaG = 0.7;
+c = 3;
+sigmaN = 1;
+lambda = log(0.8/0.2);
+neighbors = zeros(4,1);
+phi = zeros(L,1);
+potential = zeros(L,1);
+p = zeros(L+1,1);
+for k = 1:100
+    T = c/log(1+k);
+    k
+    tic;
+    for i = 2:S(1)-1
+        for j = 2:S(1)-1
+            neighbors = [State(i-1,j), State(i+1,j), State(i,j-1), State(i,j+1)];
+            iS = [initialState(i-1,j), initialState(i+1,j), initialState(i,j-1), initialState(i,j+1)];
+            for l = 1:L
+                phi(l) = sum(((repmat(I(l),1,4)-iS) - repmat(mu,1,4)).^2)/(2*(sigmaG^2));
+                potential(l) = (sum((3).*(neighbors~=I(l))) + lambda*(State(i,j) ~= I(l)))/T + phi(l);
+            end
+            for l = 1:L
+                p(l) = exp((-1)*potential(l))/sum(exp((-1)*potential));
+            end
+%             phi1 = sum(((repmat(0.5,1,4) - iS) - repmat(mu,1,4)).^2)/(2*(sigmaG^2));
+%             phi2 = sum(((repmat(1,1,4) - iS) - repmat(mu,1,4)).^2)/(2*(sigmaG^2));
+%             potential1 = (sum((3).*(neighbors~=0.5)) + lambda*(State(i,j) ~= 0.5))/T + phi1;
+%             potential2 = (sum((3).*(neighbors~=1)) + lambda*(State(i,j) ~= 1))/T + phi2;
+            e = rand(1);
+            pl = p(1);
+            for l = 1:L
+                if e < pl
+                    State(i,j)=I(l);
+                    break;
+                else
+                 pl= pl+ p(l+1);   
+                end    
+            end
+%             if e < pl
+%                 State(i,j) = 0.5;
+%             else
+%                 State(i,j) = 1;
+%             end
+        end     
+    end
+    toc;
+end
+figure(3);
+imshow(State);
